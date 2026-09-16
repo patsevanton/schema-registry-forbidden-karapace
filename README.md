@@ -56,8 +56,9 @@ terraform apply
 
 - VPC + подсеть с NAT-шлюзом (ноды без публичных IP);
 - `yandex_mdb_kafka_cluster` со `schema_registry = true`;
-- `yandex_mdb_kafka_user` `schema-service` с `ACCESS_ROLE_PRODUCER` на топик
-  и `ACCESS_ROLE_SCHEMA_READER` / `ACCESS_ROLE_SCHEMA_WRITER` на subject `{topic}-value`;
+- `yandex_mdb_kafka_user` `schema-service` с `ACCESS_ROLE_PRODUCER` на топик,
+  `ACCESS_ROLE_SCHEMA_READER` / `ACCESS_ROLE_SCHEMA_WRITER` на топик и на
+  subject `{topic}-value`;
 - сервисный аккаунт `sa-k8s-editor` + `yandex_kubernetes_cluster` + node group
   (прерываемые ноды, HDD-диски).
 

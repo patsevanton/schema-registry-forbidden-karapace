@@ -55,7 +55,7 @@ resource "yandex_mdb_kafka_topic" "events" {
 # Service user with a producer grant on the topic. Per Yandex docs a single
 # ACCESS_ROLE_PRODUCER on the topic is enough for the {topic}-value subject,
 # but Karapace REST still answers 403 on /subjects and /config unless the
-# SCHEMA_* roles are granted on the subject.
+# SCHEMA_* roles are granted on both the topic and the subject.
 resource "yandex_mdb_kafka_user" "producer" {
   cluster_id = yandex_mdb_kafka_cluster.this.id
   name       = var.kafka_user
@@ -64,6 +64,19 @@ resource "yandex_mdb_kafka_user" "producer" {
   permission {
     topic_name = var.topic
     role       = "ACCESS_ROLE_PRODUCER"
+  }
+
+  # Schema permissions are granted on the topic itself as well as on the
+  # subject. Karapace checks `ACCESS_ROLE_SCHEMA_READER`/`ACCESS_ROLE_SCHEMA_WRITER`
+  # on the topic for `/config` and `/subjects` before resolving the subject.
+  permission {
+    topic_name = var.topic
+    role       = "ACCESS_ROLE_SCHEMA_READER"
+  }
+
+  permission {
+    topic_name = var.topic
+    role       = "ACCESS_ROLE_SCHEMA_WRITER"
   }
 
   # Subject-level schema permissions. `topic_name` holds the Schema Registry
