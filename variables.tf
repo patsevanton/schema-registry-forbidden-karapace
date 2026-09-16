@@ -33,6 +33,18 @@ variable "kafka_password" {
   sensitive   = true
 }
 
+variable "kafka_ui_user" {
+  description = "Имя пользователя Kafka для kafbat-ui (доступ ACCESS_ROLE_ADMIN)"
+  type        = string
+  default     = "kafka-ui"
+}
+
+variable "kafka_ui_password" {
+  description = "Пароль пользователя Kafka для kafbat-ui"
+  type        = string
+  sensitive   = true
+}
+
 variable "topic" {
   description = "Имя топика, в который публикует продюсер"
   type        = string

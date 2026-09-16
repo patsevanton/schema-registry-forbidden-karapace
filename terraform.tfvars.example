@@ -2,6 +2,8 @@
 # folder_id — из консоли Yandex Cloud.
 # kafka_password — пароль сервисного пользователя Kafka (не админа кластера).
 # Используется и Go-приложением (SASL), и для Basic Auth в Schema Registry.
+# kafka_ui_password — пароль пользователя Kafka для kafbat-ui.
 
-folder_id      = "b1gxxxxxxxxxxxxxxxx"
-kafka_password = "replace-with-a-strong-password"
+folder_id         = "b1gxxxxxxxxxxxxxxxx"
+kafka_password    = "replace-with-a-strong-password"
+kafka_ui_password = "replace-with-a-strong-password"

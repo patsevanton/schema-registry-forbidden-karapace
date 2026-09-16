@@ -24,6 +24,8 @@ validate points schema ID: schema ID is not registered for checkout.order.create
 | `manifests/` | Шаблон Secret с кредами Kafka/Schema Registry, рендерится Terraform'ом |
 | `chart/` | Helm-чарт продюсера (Deployment) |
 | `app/` | Минимальный Go-продюсер, повторяющий цепочку `Compatibility -> Forbidden -> schema ID is not registered` |
+| `traefik.tf` | Ingress-контроллер Traefik и публичный IP для kafbat-ui |
+| `kafka-ui-values.yaml.tftpl` | Values kafbat-ui, рендерятся Terraform'ом в `kafka-ui-values.yaml` |
 | `.github/workflows/docker.yml` | Semver-релиз + сборка и публикация образа в GHCR |
 
 Go-образ собирается из `app/` и публикуется в GHCR
@@ -60,11 +62,14 @@ terraform apply
   `ACCESS_ROLE_SCHEMA_READER` / `ACCESS_ROLE_SCHEMA_WRITER` на топик и на
   subject `{topic}-value`;
 - сервисный аккаунт `sa-k8s-editor` + `yandex_kubernetes_cluster` + node group
-  (прерываемые ноды, HDD-диски).
+  (прерываемые ноды, HDD-диски);
+- `yandex_vpc_address` + Traefik (ingress-контроллер) для доступа к kafbat-ui;
+- `yandex_mdb_kafka_user` `kafka-ui` с `ACCESS_ROLE_ADMIN` на `*`.
 
 Пароль Kafka/Schema Registry не попадает в git: `terraform.tfvars` в `.gitignore`,
 а Terraform рендерит Secret на диск (файл `manifests/kafka-credentials-secret.yaml`
-тоже в `.gitignore`).
+тоже в `.gitignore`). Values kafbat-ui (`kafka-ui-values.yaml`) содержат пароль
+пользователя UI и тоже в `.gitignore`.
 
 ### Как сломать ACL (воспроизвести 403)
 
@@ -93,6 +98,29 @@ Helm-чарт продюсера:
 helm upgrade --install producer ./chart \
   --namespace schema-registry-forbidden --create-namespace
 ```
+
+## Деплой kafbat-ui
+
+Traefik и публичный IP создаются Terraform'ом при `apply`. FQDN UI и IP:
+
+```bash
+terraform output -raw kafka_ui_url
+terraform output -raw ingress_public_ip
+```
+
+Values kafbat-ui рендерятся Terraform'ом в `kafka-ui-values.yaml` (в `.gitignore`,
+содержит пароль пользователя UI). Ставится через helm CLI:
+
+```bash
+helm repo add kafbat-ui https://kafbat.github.io/helm-charts
+helm repo update kafbat-ui
+helm upgrade --install kafbat-ui kafbat-ui/kafka-ui \
+  --namespace kafka-ui --create-namespace \
+  -f kafka-ui-values.yaml
+```
+
+UI открывается по адресу из `terraform output -raw kafka_ui_url`
+(вида `http://kafka-ui.<ingress_public_ip>.sslip.io`).
 
 ## Собрать и прогнать Go-репродуктор локально
 

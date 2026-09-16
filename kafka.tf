@@ -92,3 +92,16 @@ resource "yandex_mdb_kafka_user" "producer" {
     role       = "ACCESS_ROLE_SCHEMA_WRITER"
   }
 }
+
+# Пользователь для kafbat-ui: полный доступ ко всем топикам и схемам.
+# Отдельный от продюсера, чтобы UI не зависел от урезанных прав schema-service.
+resource "yandex_mdb_kafka_user" "kafka_ui" {
+  cluster_id = yandex_mdb_kafka_cluster.this.id
+  name       = var.kafka_ui_user
+  password   = var.kafka_ui_password
+
+  permission {
+    topic_name = "*"
+    role       = "ACCESS_ROLE_ADMIN"
+  }
+}

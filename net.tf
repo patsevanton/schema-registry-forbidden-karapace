@@ -104,6 +104,18 @@ resource "yandex_vpc_security_group" "k8s" {
     v4_cidr_blocks = ["10.10.0.0/16"]
   }
 
+  # LoadBalancer Traefik принимает трафик и проксирует его на NodePort сервисов
+  # (диапазон 30000-32767). Health-check балансировщика приходит из подсетей
+  # 198.18.235.0/24 и 198.18.248.0/24, поэтому без этого правила LB остаётся
+  # без healthy-таргетов.
+  ingress {
+    description    = "LoadBalancer health check (NodePort)"
+    protocol       = "TCP"
+    from_port      = 30000
+    to_port        = 32767
+    v4_cidr_blocks = ["198.18.235.0/24", "198.18.248.0/24"]
+  }
+
   egress {
     description    = "разрешить весь исходящий трафик"
     protocol       = "ANY"

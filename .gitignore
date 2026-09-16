@@ -50,3 +50,6 @@ app/producer
 # Сгенерированный Terraform'ом манифест секрета (содержит пароль Kafka)
 manifests/kafka-credentials-secret.yaml
 app/app
+
+# Сгенерированный Terraform'ом values-файл kafbat-ui (содержит пароль Kafka)
+kafka-ui-values.yaml

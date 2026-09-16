@@ -1,0 +1,36 @@
+# Values для kafbat-ui (kafbat-ui/kafka-ui). Рендерится Terraform'ом из
+# kafka-ui-values.yaml.tftpl (см. kafka-ui.tf) и применяется вручную:
+#   helm upgrade --install kafbat-ui kafbat-ui/kafka-ui -n kafka-ui \
+#     --create-namespace -f kafka-ui-values.yaml
+#
+# Креды Kafka передаются через envs.secret (чарт создаёт из них Secret), а не
+# через yamlApplicationConfig, чтобы пароль не попадал в ConfigMap.
+
+replicaCount: 1
+
+image:
+  pullPolicy: IfNotPresent
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Подключение к managed Kafka: SASL_PLAINTEXT (порт 9092), SCRAM-SHA-512.
+envs:
+  secret:
+    KAFKA_CLUSTERS_0_NAME: "schema-registry-forbidden"
+    KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "${kafka_ui_bootstrap}"
+    KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: "SASL_PLAINTEXT"
+    KAFKA_CLUSTERS_0_PROPERTIES_SASL_MECHANISM: "SCRAM-SHA-512"
+    KAFKA_CLUSTERS_0_PROPERTIES_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.scram.ScramLoginModule required username="${kafka_ui_user}" password="${kafka_ui_password}";'
+
+ingress:
+  enabled: true
+  ingressClassName: "traefik"
+  path: "/"
+  pathType: "Prefix"
+  host: "${kafka_ui_fqdn}"
