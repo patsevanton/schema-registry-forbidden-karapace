@@ -67,30 +67,10 @@ resource "yandex_mdb_kafka_user" "producer" {
     role       = "ACCESS_ROLE_PRODUCER"
   }
 
-  # Права на схемы выдаются и на сам топик, и на субъект. Karapace проверяет
-  # `ACCESS_ROLE_SCHEMA_READER`/`ACCESS_ROLE_SCHEMA_WRITER` на топике для
-  # `/config` и `/subjects` до того, как резолвит субъект.
-  permission {
-    topic_name = var.topic
-    role       = "ACCESS_ROLE_SCHEMA_READER"
-  }
-
-  permission {
-    topic_name = var.topic
-    role       = "ACCESS_ROLE_SCHEMA_WRITER"
-  }
-
-  # Права на схемы на уровне субъекта. `topic_name` содержит субъект Schema
-  # Registry, а НЕ топик Kafka. Для value-субъекта имя — "{topic}-value".
-  permission {
-    topic_name = "${var.topic}-value"
-    role       = "ACCESS_ROLE_SCHEMA_READER"
-  }
-
-  permission {
-    topic_name = "${var.topic}-value"
-    role       = "ACCESS_ROLE_SCHEMA_WRITER"
-  }
+  # Воспроизведение 403 (см. README, «Как сломать ACL»): SCHEMA_* permissions
+  # намеренно убраны. Karapace REST отвечает Forbidden на /config и /subjects,
+  # пока роли ACCESS_ROLE_SCHEMA_READER/WRITER не выданы и на топик, и на
+  # субъект {topic}-value.
 }
 
 # Пользователь для kafbat-ui: полный доступ ко всем топикам и схемам.
