@@ -40,12 +40,19 @@ resource "yandex_vpc_route_table" "rt" {
 # --- Security groups ---------------------------------------------------------
 
 # Kafka-кластер: брокеры + schema registry (Karapace REST).
-# REST-эндпоинт Karapace доступен на тех же broker-хостах через порт 9091
-# (managed schema registry). Открываем его только изнутри VPC, чтобы
-# продюсер в k8s мог до него достучаться.
+# REST-эндпоинт Karapace (Managed Schema Registry) доступен на тех же
+# broker-хостах по HTTPS на порту 443. Открываем его из группы безопасности
+# k8s, чтобы продюсер в кластере мог достучаться до реестра.
 resource "yandex_vpc_security_group" "kafka" {
   name       = "schema-registry-forbidden-kafka-sg"
   network_id = yandex_vpc_network.this.id
+
+  ingress {
+    description       = "Karapace REST API (Managed Schema Registry)"
+    protocol          = "TCP"
+    port              = 443
+    security_group_id = yandex_vpc_security_group.k8s.id
+  }
 
   ingress {
     description    = "Kafka брокеры (SASL/TLS)"
