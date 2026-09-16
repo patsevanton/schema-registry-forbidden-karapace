@@ -20,9 +20,16 @@ validate points schema ID: schema ID is not registered for checkout.order.create
 
 | Путь | Что делает |
 |------|------------|
-| `terraform/` | Поднимает VPC, Managed Kafka (с включённым Schema Registry) и Managed Kubernetes |
-| `k8s/` | Deployment продюсера + Secret с кредами |
-| `go-app/` | Минимальный Go-продюсер, повторяющий цепочку `Compatibility -> Forbidden -> schema ID is not registered` |
+| `*.tf` (корень) | Terraform: VPC + NAT-шлюз, Managed Kafka (с включённым Schema Registry) и Managed Kubernetes |
+| `manifests/` | Шаблон Secret с кредами Kafka/Schema Registry, рендерится Terraform'ом |
+| `chart/` | Helm-чарт продюсера (Deployment) |
+| `app/` | Минимальный Go-продюсер, повторяющий цепочку `Compatibility -> Forbidden -> schema ID is not registered` |
+| `.github/workflows/docker.yml` | Semver-релиз + сборка и публикация образа в GHCR |
+
+Go-образ собирается из `app/` и публикуется в GHCR
+(`ghcr.io/patsevanton/schema-registry-forbidden-karapace`); тег образа — это
+semver из workflow, а `chart/values.yaml` и `chart/Chart.yaml` пинят его
+(`tag`, `appVersion`).
 
 ## Как воспроизводится ошибка
 
@@ -33,14 +40,13 @@ validate points schema ID: schema ID is not registered for checkout.order.create
 1. `registerSchemas()` ошибку только логирует и **не пишет ID** в память;
 2. `RequireSchemaID` видит пустой ID и валит старт.
 
-`go-app/main.go` повторяет ровно эту цепочку. Тест `TestStartupFailsWhenForbidden`
+`app/main.go` повторяет ровно эту цепочку. Тест `TestStartupFailsWhenForbidden`
 фиксирует поведение.
 
 ## Поднять инфраструктуру (Terraform)
 
 ```bash
-cd terraform
-cp terraform.tfvars.example terraform.tfvars   # заполнить folder_id, cloud_id, kafka_password, k8s_sa_id
+cp terraform.tfvars.example terraform.tfvars   # заполнить folder_id, kafka_password
 terraform init
 terraform plan
 terraform apply
@@ -48,10 +54,16 @@ terraform apply
 
 Создаются:
 
+- VPC + подсеть с NAT-шлюзом (ноды без публичных IP);
 - `yandex_mdb_kafka_cluster` со `schema_registry = true`;
 - `yandex_mdb_kafka_user` `schema-service` с `ACCESS_ROLE_PRODUCER` на топик
   и `ACCESS_ROLE_SCHEMA_READER` / `ACCESS_ROLE_SCHEMA_WRITER` на subject `{topic}-value`;
-- `yandex_kubernetes_cluster` + node group.
+- сервисный аккаунт `sa-k8s-editor` + `yandex_kubernetes_cluster` + node group
+  (прерываемые ноды, HDD-диски).
+
+Пароль Kafka/Schema Registry не попадает в git: `terraform.tfvars` в `.gitignore`,
+а Terraform рендерит Secret на диск (файл `manifests/kafka-credentials-secret.yaml`
+тоже в `.gitignore`).
 
 ### Как сломать ACL (воспроизвести 403)
 
@@ -60,10 +72,31 @@ terraform apply
 **убрать** `SCHEMA_*` permissions из `yandex_mdb_kafka_user.producer` и
 `terraform apply`.
 
-## Собрать и прогнать Go-репродуктор
+## Деплой продюсера
+
+Kubeconfig:
 
 ```bash
-cd go-app
+terraform output -raw k8s_cluster_credentials_command | bash
+```
+
+Secret с кредами (рендерится Terraform'ом при `apply`):
+
+```bash
+kubectl apply -f manifests/kafka-credentials-secret.yaml
+```
+
+Helm-чарт продюсера:
+
+```bash
+helm upgrade --install producer ./chart \
+  --namespace schema-registry-forbidden --create-namespace
+```
+
+## Собрать и прогнать Go-репродуктор локально
+
+```bash
+cd app
 go mod tidy
 go test ./...                       # TestStartupFailsWhenForbidden = зелёный при 403
 go build -o producer .

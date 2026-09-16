@@ -1,0 +1,25 @@
+# Публичные значения Helm-чарта продюсера.
+# Образ собирается из app/ и публикуется в GHCR (см. .github/workflows/docker.yml).
+# Креды Kafka/Schema Registry не хранятся здесь: Secret kafka-credentials
+# рендерится Terraform'ом (manifests.tf) и применяется вручную.
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/patsevanton/schema-registry-forbidden-karapace
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+# Имя Secret с KAFKA_* переменными (создаётся из terraform, см. README)
+credentialsSecretName: kafka-credentials
+
+env:
+  TOPIC: "checkout.order.created.v2"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi

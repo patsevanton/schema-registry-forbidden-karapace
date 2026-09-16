@@ -44,6 +44,8 @@ terraform.rc
 # planout
 
 # Go build artifacts
-go-app/producer
-go-app/schema-registry-forbidden-karapace
+app/producer
 *.exe
+
+# Сгенерированный Terraform'ом манифест секрета (содержит пароль Kafka)
+manifests/kafka-credentials-secret.yaml

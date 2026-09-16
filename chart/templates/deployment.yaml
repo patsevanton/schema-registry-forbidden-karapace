@@ -1,0 +1,35 @@
+# Продюсер, который падает на старте, когда managed Schema Registry (Karapace)
+# отвечает 403 Forbidden на GET /config/{subject}?defaultToGlobal=true&verbose=true.
+#
+# KAFKA_BOOTSTRAP, SCHEMA_REGISTRY_URL, KAFKA_USER, KAFKA_PASSWORD приходят из
+# Secret (по умолчанию kafka-credentials), который рендерит Terraform.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "producer.name" . }}
+  labels:
+    {{- include "producer.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "producer.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "producer.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: producer
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.credentialsSecretName }}
+          env:
+            {{- range $k, $v := .Values.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

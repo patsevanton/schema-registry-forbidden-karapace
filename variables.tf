@@ -3,11 +3,6 @@ variable "folder_id" {
   type        = string
 }
 
-variable "cloud_id" {
-  description = "Yandex Cloud cloud ID"
-  type        = string
-}
-
 variable "zone" {
   description = "Availability zone"
   type        = string
@@ -48,9 +43,4 @@ variable "k8s_node_count" {
   description = "Number of nodes in the single node group"
   type        = number
   default     = 1
-}
-
-variable "k8s_sa_id" {
-  description = "Service account ID used by the Kubernetes node group (roles: container-registry, k8s.clusters.agent)"
-  type        = string
 }
