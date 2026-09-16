@@ -15,9 +15,9 @@
 //	-> RequireSchemaID видит пустой ID и жёстко падает на старте.
 //
 // Этот бинарь воспроизводит ровно то же поведение: регистрирует value-субъект
-// для одного protobuf-топика, стартует с вызова Compatibility() и — при
-// Forbidden — отказывается запускаться с той же ошибкой "schema ID is not
-// registered", повторяя путь жёсткого падения генератора.
+// для одного protobuf-топика, стартует с вызова Compatibility() и при Forbidden
+// не получает ID схемы. Вместо жёсткого падения он логирует ошибку и остаётся
+// в фоне, периодически повторяя полный цикл registerSubject.
 package main
 
 import (
@@ -25,6 +25,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/twmb/franz-go/pkg/sr"
 )
@@ -34,6 +37,9 @@ const (
 
 	// Деперсонализированное имя топика/события.
 	topic = "checkout.order.created.v2"
+
+	// pollInterval — период фоновой перерегистрации схемы.
+	pollInterval = time.Minute
 )
 
 // valueSubject — субъект Schema Registry, для которого продюсер регистрирует схему.
@@ -161,6 +167,31 @@ func (r *Registry) requireSchemaID(topicName string) error {
 	return nil
 }
 
+// runBackground держит процесс запущенным и периодически повторяет полный цикл
+// registerSubject. Ошибки (в том числе 403 Forbidden от Karapace) только
+// логируются — процесс не завершается, а ждёт следующего тика. Возвращается
+// при отмене ctx по SIGINT/SIGTERM.
+func (r *Registry) runBackground(ctx context.Context, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			fmt.Println("background schema poller stopped")
+			return
+		case <-ticker.C:
+			id, err := r.registerSubject(valueSubject(topic))
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "background re-registration failed: %v\n", err)
+				continue
+			}
+			r.schemas[topic] = id
+			fmt.Printf("background re-registration ok for %s: %d\n", topic, id)
+		}
+	}
+}
+
 // isNotFoundErr повторяет сгенерированный код: только коды ошибок 404xx
 // считаются "субъект ещё не существует"; 403 проходит как настоящая ошибка.
 func isNotFoundErr(err error) bool {
@@ -199,9 +230,15 @@ func main() {
 	}
 
 	if err := registry.requireSchemaID(topic); err != nil {
+		// Реальное жёсткое падение генератора здесь заменено: вместо выхода
+		// процесс уходит в фоновый цикл и продолжает попытки.
 		fmt.Fprintln(os.Stderr, "validate points schema ID:", err)
-		os.Exit(1)
+	} else {
+		fmt.Printf("schema ID registered for %s: %d\n", topic, registry.schemas[topic])
 	}
 
-	fmt.Printf("schema ID registered for %s: %d\n", topic, registry.schemas[topic])
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	registry.runBackground(ctx, pollInterval)
 }
