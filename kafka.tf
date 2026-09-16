@@ -59,8 +59,8 @@ resource "yandex_mdb_kafka_topic" "events" {
 # пока роли SCHEMA_* не выданы и на топик, и на субъект.
 resource "yandex_mdb_kafka_user" "producer" {
   cluster_id = yandex_mdb_kafka_cluster.this.id
-  name       = var.kafka_user
-  password   = var.kafka_password
+  name       = var.kafka_schema_service_user
+  password   = var.kafka_schema_service_password
 
   permission {
     topic_name = var.topic
@@ -97,8 +97,8 @@ resource "yandex_mdb_kafka_user" "producer" {
 # Отдельный от продюсера, чтобы UI не зависел от урезанных прав schema-service.
 resource "yandex_mdb_kafka_user" "kafka_ui" {
   cluster_id = yandex_mdb_kafka_cluster.this.id
-  name       = var.kafka_ui_user
-  password   = var.kafka_ui_password
+  name       = var.kafbat_ui_admin_user
+  password   = var.kafbat_ui_admin_password
 
   permission {
     topic_name = "*"

@@ -21,26 +21,26 @@ variable "kafka_version" {
   default     = "3.9"
 }
 
-variable "kafka_user" {
+variable "kafka_schema_service_user" {
   description = "Имя пользователя сервисного аккаунта Kafka (принципал basic-auth)"
   type        = string
   default     = "schema-service"
 }
 
-variable "kafka_password" {
+variable "kafka_schema_service_password" {
   description = "Пароль сервисного аккаунта Kafka (SASL + basic auth в schema registry)"
   type        = string
   sensitive   = true
 }
 
-variable "kafka_ui_user" {
-  description = "Имя пользователя Kafka для kafbat-ui (доступ ACCESS_ROLE_ADMIN)"
+variable "kafbat_ui_admin_user" {
+  description = "Имя админ-пользователя Kafka для kafbat-ui (доступ ACCESS_ROLE_ADMIN)"
   type        = string
   default     = "kafka-ui"
 }
 
-variable "kafka_ui_password" {
-  description = "Пароль пользователя Kafka для kafbat-ui"
+variable "kafbat_ui_admin_password" {
+  description = "Пароль админ-пользователя Kafka для kafbat-ui"
   type        = string
   sensitive   = true
 }

@@ -48,7 +48,7 @@ semver из workflow, а `chart/values.yaml` и `chart/Chart.yaml` пинят е
 ## Поднять инфраструктуру (Terraform)
 
 ```bash
-cp terraform.tfvars.example terraform.tfvars   # заполнить folder_id, kafka_password
+cp terraform.tfvars.example terraform.tfvars   # заполнить folder_id, kafka_schema_service_password
 terraform init
 terraform plan
 terraform apply

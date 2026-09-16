@@ -106,8 +106,8 @@ output "schema_registry_url" {
   value       = local.schema_registry_url
 }
 
-output "kafka_user" {
-  value = var.kafka_user
+output "kafka_schema_service_user" {
+  value = var.kafka_schema_service_user
 }
 
 output "k8s_cluster_id" {

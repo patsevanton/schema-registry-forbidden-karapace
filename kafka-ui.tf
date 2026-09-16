@@ -4,10 +4,10 @@ locals {
   #   --create-namespace -f kafka-ui-values.yaml
   # Пароль пользователя Kafka не попадает в git (файл kafka-ui-values.yaml в .gitignore).
   kafka_ui_values = templatefile("${path.module}/kafka-ui-values.yaml.tftpl", {
-    kafka_ui_bootstrap = local.kafka_ui_bootstrap
-    kafka_ui_fqdn      = local.kafka_ui_fqdn
-    kafka_ui_user      = var.kafka_ui_user
-    kafka_ui_password  = var.kafka_ui_password
+    kafka_ui_bootstrap       = local.kafka_ui_bootstrap
+    kafka_ui_fqdn            = local.kafka_ui_fqdn
+    kafbat_ui_admin_user     = var.kafbat_ui_admin_user
+    kafbat_ui_admin_password = var.kafbat_ui_admin_password
   })
 }
 

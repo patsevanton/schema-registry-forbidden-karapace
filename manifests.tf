@@ -5,8 +5,8 @@ locals {
   kafka_secret = templatefile("${path.module}/manifests/kafka-credentials-secret.yaml.tftpl", {
     kafka_bootstrap     = local.kafka_host
     schema_registry_url = local.schema_registry_url
-    kafka_user          = var.kafka_user
-    kafka_password      = var.kafka_password
+    kafka_user          = var.kafka_schema_service_user
+    kafka_password      = var.kafka_schema_service_password
   })
 }
 
