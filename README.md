@@ -11,9 +11,7 @@ validate points schema ID: schema ID is not registered for checkout.order.create
 Перед этим в логах:
 
 ```
-ошибка при регистрации схем | не удается получить уровень совместимости для subject
-"checkout.order.created.v2-value"
-(schema_registry_url="https://...", user="schema-service") | Forbidden
+ошибка при регистрации схем | Forbidden
 ```
 
 ## Структура
@@ -23,7 +21,7 @@ validate points schema ID: schema ID is not registered for checkout.order.create
 | `*.tf` (корень) | Terraform: VPC + NAT-шлюз, Managed Kafka (с включённым Schema Registry) и Managed Kubernetes |
 | `manifests/` | Шаблон Secret с кредами Kafka/Schema Registry, рендерится Terraform'ом |
 | `chart/` | Helm-чарт продюсера (Deployment) |
-| `app/` | Минимальный Go-продюсер, повторяющий цепочку `Compatibility -> Forbidden -> schema ID is not registered` |
+| `app/` | Минимальный Go-продюсер, повторяющий цепочку `RegisterSchema -> Forbidden -> schema ID is not registered` |
 | `traefik.tf` | Ingress-контроллер Traefik и публичный IP для kafbat-ui |
 | `kafka-ui-values.yaml.tftpl` | Values kafbat-ui, рендерятся Terraform'ом в `kafka-ui-values.yaml` |
 | `.github/workflows/docker.yml` | Semver-релиз + сборка и публикация образа в GHCR |
@@ -35,9 +33,9 @@ semver из workflow, а `chart/values.yaml` и `chart/Chart.yaml` пинят е
 
 ## Как воспроизводится ошибка
 
-Генератор продюсера регистрирует value-subject `{topic}-value` и **первым**
-запросом идёт в `GET /config/{subject}?defaultToGlobal=true&verbose=true`
-(это `Compatibility()` из franz-go). При 403:
+Продюсер регистрирует value-subject `{topic}-value` одним вызовом
+`RegisterSchema` (это `POST /subjects/{subject}/versions` из franz-go,
+`id=-1, version=-1`). При 403:
 
 1. `registerSchemas()` ошибку только логирует и **не пишет ID** в память;
 2. `RequireSchemaID` видит пустой ID и валит старт.
@@ -139,7 +137,7 @@ KAFKA_PASSWORD=<password> \
 Ожидаемый вывод при 403:
 
 ```
-error registering schema: cannot read compatibility for subject "checkout.order.created.v2-value" (url=..., user=schema-service): Forbidden
+error registering schema: cannot register schema for subject "checkout.order.created.v2-value" (url=..., user=schema-service): Forbidden
 validate points schema ID: schema ID is not registered for checkout.order.created.v2
 ```
 

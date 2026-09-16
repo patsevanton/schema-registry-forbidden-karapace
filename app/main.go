@@ -9,20 +9,19 @@
 // Цепочка первопричин:
 //
 //	registerSchemas() -> registerSubject() ->
-//	  Compatibility(GET /config/{subject}?defaultToGlobal=true&verbose=true)
+//	  RegisterSchema(POST /subjects/{subject}/versions)
 //	    -> HTTP 403 Forbidden
 //	  -> ошибка только логируется, ID схемы никуда не сохраняется
 //	-> RequireSchemaID видит пустой ID и жёстко падает на старте.
 //
 // Этот бинарь воспроизводит ровно то же поведение: регистрирует value-субъект
-// для одного protobuf-топика, стартует с вызова Compatibility() и при Forbidden
-// не получает ID схемы. Вместо жёсткого падения он логирует ошибку и остаётся
-// в фоне, периодически повторяя полный цикл registerSubject.
+// для одного protobuf-топика через RegisterSchema и при Forbidden не получает
+// ID схемы. Вместо жёсткого падения он логирует ошибку и остаётся в фоне,
+// периодически повторяя полный цикл registerSubject.
 package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -90,56 +89,21 @@ func newRegistry(url, username, password string) (*Registry, error) {
 	}, nil
 }
 
-// registerSubject дословно воспроизводит сгенерированный поток registerSubject:
-//
-//	Compatibility(GET /config/{subject}) -> SetCompatibility -> CheckCompatibility -> CreateSchema
-//
-// 403 Forbidden на первом вызове НЕ является ошибкой "not found", поэтому
-// возвращается как есть (а в сгенерированном продюсере просто логируется).
+// registerSubject регистрирует схему одним вызовом RegisterSchema, как это
+// делает продюсер в prod. В отличие от сгенерированного цикла
+// Compatibility -> SetCompatibility -> CheckCompatibility -> CreateSchema,
+// здесь нет подготовительных запросов к /config, поэтому 403 от Karapace
+// приходит сразу на POST /subjects/{subject}/versions и возвращается как есть.
 func (r *Registry) registerSubject(subject string) (int, error) {
-	paramCtx := sr.WithParams(context.Background(), sr.DefaultToGlobal, sr.Verbose)
-
-	res := r.client.Compatibility(paramCtx, subject)
-	if len(res) != 1 {
-		return 0, errors.New("expected exactly one compatibility result")
-	}
-
-	compatRes := res[0]
-	if compatRes.Err != nil && !isNotFoundErr(compatRes.Err) {
-		return 0, fmt.Errorf("cannot read compatibility for subject %q (url=%q, user=%q): %w",
-			subject, r.URL, r.Username, compatRes.Err)
-	}
-
-	if compatRes.Level != sr.CompatBackwardTransitive {
-		setRes := r.client.SetCompatibility(paramCtx, sr.SetCompatibility{Level: sr.CompatBackwardTransitive}, subject)
-		if len(setRes) != 1 {
-			return 0, errors.New("expected exactly one compatibility result")
-		}
-		if setRes[0].Err != nil {
-			return 0, fmt.Errorf("cannot set compatibility for subject %q: %w", subject, setRes[0].Err)
-		}
-	}
-
 	schema := sr.Schema{Schema: schemaText, Type: schemaType}
 
-	checkCompatRes, err := r.client.CheckCompatibility(paramCtx, subject, -1, schema)
-	if err != nil && !isNotFoundErr(err) {
-		return 0, fmt.Errorf("cannot check compatibility for subject %q: %w", subject, err)
-	}
-	if err == nil && !checkCompatRes.Is {
-		if len(checkCompatRes.Messages) == 0 {
-			return 0, fmt.Errorf("schema for %s is incompatible with the previous version", subject)
-		}
-		return 0, fmt.Errorf("schema for %s is incompatible, reason: %s", subject, checkCompatRes.Messages[0])
-	}
-
-	created, err := r.client.CreateSchema(paramCtx, subject, schema)
+	id, err := r.client.RegisterSchema(context.Background(), subject, schema, -1, -1)
 	if err != nil {
-		return 0, fmt.Errorf("cannot publish schema for subject %q (url=%q, user=%q): %w",
+		return 0, fmt.Errorf("cannot register schema for subject %q (url=%q, user=%q): %w",
 			subject, r.URL, r.Username, err)
 	}
 
-	return created.ID, nil
+	return id, nil
 }
 
 // registerSchemas регистрирует value-субъект для единственного топика и
@@ -190,21 +154,6 @@ func (r *Registry) runBackground(ctx context.Context, interval time.Duration) {
 			fmt.Printf("background re-registration ok for %s: %d\n", topic, id)
 		}
 	}
-}
-
-// isNotFoundErr повторяет сгенерированный код: только коды ошибок 404xx
-// считаются "субъект ещё не существует"; 403 проходит как настоящая ошибка.
-func isNotFoundErr(err error) bool {
-	if err == nil {
-		return false
-	}
-	var re *sr.ResponseError
-	if !errors.As(err, &re) {
-		return false
-	}
-	return re.ErrorCode == sr.ErrSubjectNotFound.Code ||
-		re.ErrorCode == sr.ErrVersionNotFound.Code ||
-		re.ErrorCode == sr.ErrSubjectLevelCompatibilityNotConfigured.Code
 }
 
 func main() {
