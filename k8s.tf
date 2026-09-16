@@ -34,8 +34,6 @@ resource "yandex_kubernetes_cluster" "this" {
       zone      = local.subnet_zone
       subnet_id = local.subnet_id
     }
-
-    security_group_ids = [yandex_vpc_security_group.k8s.id]
   }
 
   service_account_id      = yandex_iam_service_account.sa_k8s_editor.id
@@ -73,9 +71,8 @@ resource "yandex_kubernetes_node_group" "this" {
     }
 
     network_interface {
-      nat                = false # Публичные IP на нодах выключены; исходящий трафик через NAT-шлюз (см. net.tf)
-      subnet_ids         = [local.subnet_id]
-      security_group_ids = [yandex_vpc_security_group.k8s.id, yandex_vpc_security_group.kafka.id]
+      nat        = false # Публичные IP на нодах выключены; исходящий трафик через NAT-шлюз (см. net.tf)
+      subnet_ids = [local.subnet_id]
     }
 
     resources {

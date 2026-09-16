@@ -5,7 +5,6 @@ resource "yandex_mdb_kafka_cluster" "this" {
   environment         = "PRODUCTION"
   network_id          = yandex_vpc_network.this.id
   subnet_ids          = [for s in yandex_vpc_subnet.this : s.id]
-  security_group_ids  = [yandex_vpc_security_group.kafka.id]
   deletion_protection = false
 
   config {
