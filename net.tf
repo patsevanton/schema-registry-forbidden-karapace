@@ -4,10 +4,12 @@ resource "yandex_vpc_network" "this" {
 }
 
 resource "yandex_vpc_subnet" "this" {
-  name           = "schema-registry-forbidden-${var.zone}"
-  zone           = var.zone
+  for_each = toset(var.zones)
+
+  name           = "schema-registry-forbidden-${each.key}"
+  zone           = each.key
   network_id     = yandex_vpc_network.this.id
-  v4_cidr_blocks = ["10.10.0.0/24"]
+  v4_cidr_blocks = [cidrsubnet("10.10.0.0/16", 8, index(var.zones, each.key))]
   route_table_id = yandex_vpc_route_table.rt.id # Исходящий трафик через NAT-шлюз
 }
 
@@ -49,14 +51,14 @@ resource "yandex_vpc_security_group" "kafka" {
     description    = "Kafka брокеры (SASL/TLS)"
     protocol       = "TCP"
     port           = 9091
-    v4_cidr_blocks = ["10.10.0.0/24"]
+    v4_cidr_blocks = ["10.10.0.0/16"]
   }
 
   ingress {
     description    = "Kafka plaintext bootstrap"
     protocol       = "TCP"
     port           = 9092
-    v4_cidr_blocks = ["10.10.0.0/24"]
+    v4_cidr_blocks = ["10.10.0.0/16"]
   }
 
   egress {
@@ -84,7 +86,7 @@ resource "yandex_vpc_security_group" "k8s" {
     description    = "K8s API master"
     protocol       = "TCP"
     port           = 6443
-    v4_cidr_blocks = ["10.10.0.0/24"]
+    v4_cidr_blocks = ["10.10.0.0/16"]
   }
 
   ingress {
@@ -92,7 +94,7 @@ resource "yandex_vpc_security_group" "k8s" {
     protocol       = "ANY"
     from_port      = 0
     to_port        = 65535
-    v4_cidr_blocks = ["10.10.0.0/24"]
+    v4_cidr_blocks = ["10.10.0.0/16"]
   }
 
   egress {

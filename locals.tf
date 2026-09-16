@@ -1,8 +1,8 @@
 locals {
   network_id = yandex_vpc_network.this.id
 
-  subnet_id   = yandex_vpc_subnet.this.id
-  subnet_zone = yandex_vpc_subnet.this.zone
+  subnet_id   = yandex_vpc_subnet.this[var.zone].id
+  subnet_zone = yandex_vpc_subnet.this[var.zone].zone
 
   # Bootstrap-хост Kafka и REST-эндпоинт Karapace (managed schema registry)
   # доступны на одном и том же broker-хосте.

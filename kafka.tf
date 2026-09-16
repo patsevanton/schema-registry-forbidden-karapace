@@ -4,14 +4,14 @@ resource "yandex_mdb_kafka_cluster" "this" {
   name                = "schema-registry-forbidden"
   environment         = "PRODUCTION"
   network_id          = yandex_vpc_network.this.id
-  subnet_ids          = [yandex_vpc_subnet.this.id]
+  subnet_ids          = [for s in yandex_vpc_subnet.this : s.id]
   security_group_ids  = [yandex_vpc_security_group.kafka.id]
   deletion_protection = false
 
   config {
     version       = var.kafka_version
     brokers_count = 1
-    zones         = [var.zone]
+    zones         = var.zones
 
     # Управляемый Schema Registry (Karapace). Это REST-эндпоинт, к которому
     # продюсер обращается для регистрации схем.
@@ -20,7 +20,7 @@ resource "yandex_mdb_kafka_cluster" "this" {
     kafka {
       resources {
         resource_preset_id = "s2.micro"
-        disk_type_id       = "network-hdd"
+        disk_type_id       = "network-ssd"
         disk_size          = 32
       }
       kafka_config {
@@ -37,7 +37,7 @@ resource "yandex_mdb_kafka_cluster" "this" {
     zookeeper {
       resources {
         resource_preset_id = "s2.micro"
-        disk_type_id       = "network-hdd"
+        disk_type_id       = "network-ssd"
         disk_size          = 10
       }
     }

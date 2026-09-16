@@ -4,9 +4,15 @@ variable "folder_id" {
 }
 
 variable "zone" {
-  description = "Зона доступности"
+  description = "Зона доступности (NAT public IP, k8s master/node group)"
   type        = string
   default     = "ru-central1-a"
+}
+
+variable "zones" {
+  description = "Availability zones for the multi-host Kafka cluster (ZooKeeper subcluster)"
+  type        = list(string)
+  default     = ["ru-central1-a", "ru-central1-b", "ru-central1-d"]
 }
 
 variable "kafka_version" {
