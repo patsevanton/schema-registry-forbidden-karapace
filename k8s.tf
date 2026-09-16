@@ -49,7 +49,7 @@ resource "yandex_kubernetes_cluster" "this" {
 
 # Группа узлов кластера
 resource "yandex_kubernetes_node_group" "this" {
-  description = "Node group for the Managed Service for Kubernetes cluster"
+  description = "Группа узлов для кластера Managed Service for Kubernetes"
   name        = "schema-registry-forbidden-node-group"
   cluster_id  = yandex_kubernetes_cluster.this.id
   version     = var.k8s_version
@@ -97,12 +97,12 @@ output "k8s_cluster_credentials_command" {
 }
 
 output "kafka_bootstrap" {
-  description = "Bootstrap host for Kafka clients"
+  description = "Bootstrap-хост для клиентов Kafka"
   value       = local.kafka_host
 }
 
 output "schema_registry_url" {
-  description = "Managed Schema Registry (Karapace) REST endpoint"
+  description = "REST-эндпоинт managed Schema Registry (Karapace)"
   value       = local.schema_registry_url
 }
 

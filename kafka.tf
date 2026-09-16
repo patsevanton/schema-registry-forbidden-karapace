@@ -13,8 +13,8 @@ resource "yandex_mdb_kafka_cluster" "this" {
     brokers_count = 1
     zones         = [var.zone]
 
-    # Managed Schema Registry (Karapace). This is the REST endpoint the
-    # producer talks to for schema registration.
+    # Управляемый Schema Registry (Karapace). Это REST-эндпоинт, к которому
+    # продюсер обращается для регистрации схем.
     schema_registry = true
 
     kafka {
@@ -24,9 +24,9 @@ resource "yandex_mdb_kafka_cluster" "this" {
         disk_size          = 32
       }
       kafka_config {
-        # The real ACL bug: the producer (and its generator) expects to be able
-        # to read per-subject /config before create. Whether it may or may not
-        # depends on the roles granted below.
+        # Настоящий баг ACL: продюсер (и его генератор) ожидает, что сможет
+        # прочитать per-subject /config до создания субъекта. Разрешено это
+        # или нет — зависит от ролей, выданных ниже.
         sasl_enabled_mechanisms    = ["SASL_MECHANISM_SCRAM_SHA_512"]
         num_partitions             = 1
         default_replication_factor = "1"
@@ -44,7 +44,8 @@ resource "yandex_mdb_kafka_cluster" "this" {
   }
 }
 
-# Topic the producer publishes to (managed via dedicated resource, recommended).
+# Топик, в который публикует продюсер (рекомендуется управлять отдельным
+# ресурсом).
 resource "yandex_mdb_kafka_topic" "events" {
   cluster_id         = yandex_mdb_kafka_cluster.this.id
   name               = var.topic
@@ -52,10 +53,10 @@ resource "yandex_mdb_kafka_topic" "events" {
   replication_factor = 1
 }
 
-# Service user with a producer grant on the topic. Per Yandex docs a single
-# ACCESS_ROLE_PRODUCER on the topic is enough for the {topic}-value subject,
-# but Karapace REST still answers 403 on /subjects and /config unless the
-# SCHEMA_* roles are granted on both the topic and the subject.
+# Сервисный пользователь с правами producer на топик. Согласно документации
+# Yandex, одной роли ACCESS_ROLE_PRODUCER на топик достаточно для субъекта
+# {topic}-value, но Karapace REST всё равно отвечает 403 на /subjects и /config,
+# пока роли SCHEMA_* не выданы и на топик, и на субъект.
 resource "yandex_mdb_kafka_user" "producer" {
   cluster_id = yandex_mdb_kafka_cluster.this.id
   name       = var.kafka_user
@@ -66,9 +67,9 @@ resource "yandex_mdb_kafka_user" "producer" {
     role       = "ACCESS_ROLE_PRODUCER"
   }
 
-  # Schema permissions are granted on the topic itself as well as on the
-  # subject. Karapace checks `ACCESS_ROLE_SCHEMA_READER`/`ACCESS_ROLE_SCHEMA_WRITER`
-  # on the topic for `/config` and `/subjects` before resolving the subject.
+  # Права на схемы выдаются и на сам топик, и на субъект. Karapace проверяет
+  # `ACCESS_ROLE_SCHEMA_READER`/`ACCESS_ROLE_SCHEMA_WRITER` на топике для
+  # `/config` и `/subjects` до того, как резолвит субъект.
   permission {
     topic_name = var.topic
     role       = "ACCESS_ROLE_SCHEMA_READER"
@@ -79,9 +80,8 @@ resource "yandex_mdb_kafka_user" "producer" {
     role       = "ACCESS_ROLE_SCHEMA_WRITER"
   }
 
-  # Subject-level schema permissions. `topic_name` holds the Schema Registry
-  # subject, NOT the Kafka topic. For a value subject the name is
-  # "{topic}-value".
+  # Права на схемы на уровне субъекта. `topic_name` содержит субъект Schema
+  # Registry, а НЕ топик Kafka. Для value-субъекта имя — "{topic}-value".
   permission {
     topic_name = "${var.topic}-value"
     role       = "ACCESS_ROLE_SCHEMA_READER"

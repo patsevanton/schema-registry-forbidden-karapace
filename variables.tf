@@ -1,46 +1,46 @@
 variable "folder_id" {
-  description = "Yandex Cloud folder ID"
+  description = "ID каталога Yandex Cloud"
   type        = string
 }
 
 variable "zone" {
-  description = "Availability zone"
+  description = "Зона доступности"
   type        = string
   default     = "ru-central1-a"
 }
 
 variable "kafka_version" {
-  description = "Kafka server version"
+  description = "Версия сервера Kafka"
   type        = string
   default     = "3.9"
 }
 
 variable "kafka_user" {
-  description = "Kafka service account username (basic-auth principal)"
+  description = "Имя пользователя сервисного аккаунта Kafka (принципал basic-auth)"
   type        = string
   default     = "schema-service"
 }
 
 variable "kafka_password" {
-  description = "Kafka service account password (SASL + schema-registry basic auth)"
+  description = "Пароль сервисного аккаунта Kafka (SASL + basic auth в schema registry)"
   type        = string
   sensitive   = true
 }
 
 variable "topic" {
-  description = "Topic name the producer publishes to"
+  description = "Имя топика, в который публикует продюсер"
   type        = string
   default     = "checkout.order.created.v2"
 }
 
 variable "k8s_version" {
-  description = "Managed Kubernetes version"
+  description = "Версия Managed Kubernetes"
   type        = string
   default     = "1.33"
 }
 
 variable "k8s_node_count" {
-  description = "Number of nodes in the single node group"
+  description = "Количество узлов в единственной группе узлов"
   type        = number
   default     = 1
 }

@@ -1,5 +1,4 @@
-# VPC network and subnet shared by both the managed Kafka cluster and the
-# managed Kubernetes cluster.
+# VPC-сеть и подсеть, общие для managed Kafka-кластера и managed Kubernetes-кластера.
 resource "yandex_vpc_network" "this" {
   name = "schema-registry-forbidden"
 }
@@ -38,16 +37,16 @@ resource "yandex_vpc_route_table" "rt" {
 
 # --- Security groups ---------------------------------------------------------
 
-# Kafka cluster: brokers + schema registry (Karapace REST).
-# The Karapace REST endpoint is exposed on the same broker hosts over 9091
-# (managed schema registry). We open it only from inside the VPC so the
-# producer in k8s can reach it.
+# Kafka-кластер: брокеры + schema registry (Karapace REST).
+# REST-эндпоинт Karapace доступен на тех же broker-хостах через порт 9091
+# (managed schema registry). Открываем его только изнутри VPC, чтобы
+# продюсер в k8s мог до него достучаться.
 resource "yandex_vpc_security_group" "kafka" {
   name       = "schema-registry-forbidden-kafka-sg"
   network_id = yandex_vpc_network.this.id
 
   ingress {
-    description    = "Kafka brokers (SASL/TLS)"
+    description    = "Kafka брокеры (SASL/TLS)"
     protocol       = "TCP"
     port           = 9091
     v4_cidr_blocks = ["10.10.0.0/24"]
@@ -61,7 +60,7 @@ resource "yandex_vpc_security_group" "kafka" {
   }
 
   egress {
-    description    = "allow all outbound"
+    description    = "разрешить весь исходящий трафик"
     protocol       = "ANY"
     from_port      = 0
     to_port        = 65535
@@ -69,7 +68,7 @@ resource "yandex_vpc_security_group" "kafka" {
   }
 }
 
-# Kubernetes node group + master egress.
+# Группа узлов Kubernetes + egress мастер-ноды.
 resource "yandex_vpc_security_group" "k8s" {
   name       = "schema-registry-forbidden-k8s-sg"
   network_id = yandex_vpc_network.this.id
@@ -97,7 +96,7 @@ resource "yandex_vpc_security_group" "k8s" {
   }
 
   egress {
-    description    = "allow all outbound"
+    description    = "разрешить весь исходящий трафик"
     protocol       = "ANY"
     from_port      = 0
     to_port        = 65535

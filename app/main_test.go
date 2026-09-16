@@ -6,9 +6,9 @@ import (
 	"testing"
 )
 
-// forbiddenServer answers 403 Forbidden to every request, reproducing the
-// Karapace REST behaviour when the MDB ACL is not applied to /config and
-// /subjects endpoints.
+// forbiddenServer отвечает 403 Forbidden на каждый запрос, воспроизводя
+// поведение Karapace REST, когда MDB ACL не применён к эндпоинтам /config
+// и /subjects.
 func forbiddenServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "Forbidden", http.StatusForbidden)
@@ -30,9 +30,9 @@ func TestRegisterSubjectForbidden(t *testing.T) {
 	}
 }
 
-// TestStartupFailsWhenForbidden is the end-to-end reproduction: the registry
-// answers 403, so no schema ID is stored, and requireSchemaID hard-fails with
-// the exact "schema ID is not registered" error from the incident.
+// TestStartupFailsWhenForbidden — сквозная репродукция: реестр отвечает 403,
+// поэтому ID схемы не сохраняется, и requireSchemaID жёстко падает с той же
+// ошибкой "schema ID is not registered" из инцидента.
 func TestStartupFailsWhenForbidden(t *testing.T) {
 	srv := forbiddenServer()
 	defer srv.Close()
@@ -42,8 +42,8 @@ func TestStartupFailsWhenForbidden(t *testing.T) {
 		t.Fatalf("newRegistry: %v", err)
 	}
 
-	// The real generator only logs the registration error and leaves the map
-	// empty; mirror that here.
+	// Реальный генератор только логирует ошибку регистрации и оставляет мапу
+	// пустой; повторяем это здесь.
 	_ = registry.registerSchemas()
 
 	err = registry.requireSchemaID(topic)

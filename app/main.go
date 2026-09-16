@@ -1,23 +1,23 @@
-// Package main is a minimal, de-identified reproduction of a Kafka producer
-// startup failure against a managed Schema Registry (Karapace).
+// Package main — минимальная, деперсонализированная репродукция сбоя запуска
+// Kafka-продюсера при работе с управляемым Schema Registry (Karapace).
 //
-// The real service fails to start with:
+// Реальный сервис падает на старте с ошибкой:
 //
 //	validate points schema ID: schema ID is not registered for checkout.order.created.v2
 //	[could not init kafka producer]
 //
-// The root cause chain is:
+// Цепочка первопричин:
 //
 //	registerSchemas() -> registerSubject() ->
 //	  Compatibility(GET /config/{subject}?defaultToGlobal=true&verbose=true)
 //	    -> HTTP 403 Forbidden
-//	  -> error is only logged, schema ID is never stored
-//	-> RequireSchemaID sees an empty ID and hard-fails startup.
+//	  -> ошибка только логируется, ID схемы никуда не сохраняется
+//	-> RequireSchemaID видит пустой ID и жёстко падает на старте.
 //
-// This binary keeps exactly that behaviour: it registers the value subject for
-// a single protobuf topic, starts with the Compatibility() call, and — on
-// Forbidden — refuses to start with the same "schema ID is not registered"
-// error, mirroring the generator's hard-fail path.
+// Этот бинарь воспроизводит ровно то же поведение: регистрирует value-субъект
+// для одного protobuf-топика, стартует с вызова Compatibility() и — при
+// Forbidden — отказывается запускаться с той же ошибкой "schema ID is not
+// registered", повторяя путь жёсткого падения генератора.
 package main
 
 import (
@@ -32,17 +32,17 @@ import (
 const (
 	schemaType = sr.TypeProtobuf
 
-	// De-identified topic/event name.
+	// Деперсонализированное имя топика/события.
 	topic = "checkout.order.created.v2"
 )
 
-// valueSubject is the Schema Registry subject the producer registers against.
+// valueSubject — субъект Schema Registry, для которого продюсер регистрирует схему.
 func valueSubject(topicName string) string {
 	return topicName + "-value"
 }
 
-// schemaText is a minimal proto3 schema that would be derived from the
-// generated protobuf message descriptor in the real service.
+// schemaText — минимальная proto3-схема, которая в реальном сервисе
+// получалась бы из дескриптора сгенерированного protobuf-сообщения.
 const schemaText = `syntax = "proto3";
 
 package checkout.order.created.v2;
@@ -52,8 +52,8 @@ message OrderCreated {
 }
 `
 
-// Registry mirrors the generated producer's SchemaRegistry: URL + basic auth
-// and a map of topic -> registered schema ID.
+// Registry повторяет SchemaRegistry сгенерированного продюсера: URL + basic
+// auth и мапу топик -> зарегистрированный ID схемы.
 type Registry struct {
 	URL      string
 	Username string
@@ -63,7 +63,7 @@ type Registry struct {
 	schemas map[string]int
 }
 
-// newRegistry builds the sr.Client the same way the generated code does.
+// newRegistry создаёт sr.Client так же, как это делает сгенерированный код.
 func newRegistry(url, username, password string) (*Registry, error) {
 	opts := []sr.ClientOpt{sr.URLs(url)}
 	if username != "" && password != "" {
@@ -84,12 +84,12 @@ func newRegistry(url, username, password string) (*Registry, error) {
 	}, nil
 }
 
-// registerSubject reproduces the generated registerSubject flow verbatim:
+// registerSubject дословно воспроизводит сгенерированный поток registerSubject:
 //
 //	Compatibility(GET /config/{subject}) -> SetCompatibility -> CheckCompatibility -> CreateSchema
 //
-// A 403 Forbidden on the first call is NOT a not-found error, so it is
-// returned as-is (and, in the generated producer, merely logged).
+// 403 Forbidden на первом вызове НЕ является ошибкой "not found", поэтому
+// возвращается как есть (а в сгенерированном продюсере просто логируется).
 func (r *Registry) registerSubject(subject string) (int, error) {
 	paramCtx := sr.WithParams(context.Background(), sr.DefaultToGlobal, sr.Verbose)
 
@@ -136,9 +136,10 @@ func (r *Registry) registerSubject(subject string) (int, error) {
 	return created.ID, nil
 }
 
-// registerSchemas registers the value subject for the single topic and stores
-// the resulting ID. On error it returns the error (the real generator logs and
-// continues; we surface it so the caller can reproduce the hard-fail).
+// registerSchemas регистрирует value-субъект для единственного топика и
+// сохраняет полученный ID. При ошибке возвращает её (реальный генератор
+// логирует и продолжает; мы пробрасываем её наружу, чтобы вызывающий код мог
+// воспроизвести жёсткое падение).
 func (r *Registry) registerSchemas() error {
 	id, err := r.registerSubject(valueSubject(topic))
 	if err != nil {
@@ -148,7 +149,7 @@ func (r *Registry) registerSchemas() error {
 	return nil
 }
 
-// requireSchemaID reproduces the generated RequireSchemaID hard-fail.
+// requireSchemaID воспроизводит жёсткое падение сгенерированного RequireSchemaID.
 func (r *Registry) requireSchemaID(topicName string) error {
 	if r == nil || r.client == nil {
 		return fmt.Errorf("schema registry is required for %s", topicName)
@@ -160,8 +161,8 @@ func (r *Registry) requireSchemaID(topicName string) error {
 	return nil
 }
 
-// isNotFoundErr mirrors the generated code: only 404xx error codes are treated
-// as "subject does not exist yet"; a 403 passes through as a real error.
+// isNotFoundErr повторяет сгенерированный код: только коды ошибок 404xx
+// считаются "субъект ещё не существует"; 403 проходит как настоящая ошибка.
 func isNotFoundErr(err error) bool {
 	if err == nil {
 		return false
@@ -192,8 +193,8 @@ func main() {
 	}
 
 	if err := registry.registerSchemas(); err != nil {
-		// The generated producer only logs this error and does not write the
-		// schema ID into its map. We do the same: do not store anything.
+		// Сгенерированный продюсер только логирует эту ошибку и не записывает
+		// ID схемы в свою мапу. Мы делаем то же: ничего не сохраняем.
 		fmt.Fprintf(os.Stderr, "error registering schema: %v\n", err)
 	}
 

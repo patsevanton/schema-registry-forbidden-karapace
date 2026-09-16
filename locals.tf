@@ -4,8 +4,8 @@ locals {
   subnet_id   = yandex_vpc_subnet.this.id
   subnet_zone = yandex_vpc_subnet.this.zone
 
-  # Kafka bootstrap host and Karapace REST endpoint (managed schema registry)
-  # are exposed on the same broker host.
+  # Bootstrap-хост Kafka и REST-эндпоинт Karapace (managed schema registry)
+  # доступны на одном и том же broker-хосте.
   kafka_host          = one(yandex_mdb_kafka_cluster.this.host).name
   schema_registry_url = "https://${local.kafka_host}:443"
 }
