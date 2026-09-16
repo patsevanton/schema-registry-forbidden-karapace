@@ -1,0 +1,54 @@
+# Producer that fails to start when the managed Schema Registry (Karapace)
+# answers 403 Forbidden to GET /config/{subject}?defaultToGlobal=true&verbose=true.
+#
+# Configure via Secret + env. The same credentials are used for Kafka SASL
+# and for Schema Registry basic auth.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: schema-registry-forbidden
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kafka-credentials
+  namespace: schema-registry-forbidden
+type: Opaque
+stringData:
+  KAFKA_BOOTSTRAP: "<broker-fqdn>:9091"
+  SCHEMA_REGISTRY_URL: "https://<broker-fqdn>:443"
+  KAFKA_USER: "schema-service"
+  KAFKA_PASSWORD: "<password>"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: producer
+  namespace: schema-registry-forbidden
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: producer
+  template:
+    metadata:
+      labels:
+        app: producer
+    spec:
+      containers:
+        - name: producer
+          image: schema-registry-forbidden-producer:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: kafka-credentials
+          env:
+            - name: TOPIC
+              value: "checkout.order.created.v2"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi

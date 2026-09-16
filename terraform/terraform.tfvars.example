@@ -1,0 +1,8 @@
+# Скопировать в terraform.tfvars (не коммитится — *.tfvars в .gitignore) и заполнить.
+# folder_id / cloud_id — из консоли Yandex Cloud.
+# k8s_sa_id — ID сервисного аккаунта для node group.
+
+folder_id    = "b1gxxxxxxxxxxxxxxxx"
+cloud_id     = "b1gxxxxxxxxxxxxxxxx"
+kafka_password = "replace-with-a-strong-password"
+k8s_sa_id    = "ajexxxxxxxxxxxxxxxx"
