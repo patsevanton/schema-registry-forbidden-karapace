@@ -3,4 +3,4 @@ name: schema-registry-forbidden-producer
 description: Helm chart продюсера, воспроизводящего 403 Forbidden от managed Schema Registry (Karapace)
 type: application
 version: 0.1.0
-appVersion: "1.0.0"
+appVersion: "1.2.0"
