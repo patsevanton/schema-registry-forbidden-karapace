@@ -12,7 +12,7 @@ variable "zone" {
 variable "kafka_version" {
   description = "Kafka server version"
   type        = string
-  default     = "3.5"
+  default     = "3.9"
 }
 
 variable "kafka_user" {

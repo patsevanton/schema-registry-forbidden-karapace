@@ -30,12 +30,9 @@ resource "yandex_kubernetes_cluster" "this" {
     version   = var.k8s_version
     public_ip = true
 
-    regional {
-      region = "ru-central1"
-      location {
-        zone      = local.subnet_zone
-        subnet_id = local.subnet_id
-      }
+    zonal {
+      zone      = local.subnet_zone
+      subnet_id = local.subnet_id
     }
 
     security_group_ids = [yandex_vpc_security_group.k8s.id]
