@@ -36,7 +36,7 @@ variable "topic" {
 variable "k8s_version" {
   description = "Managed Kubernetes version"
   type        = string
-  default     = "1.30"
+  default     = "1.33"
 }
 
 variable "k8s_node_count" {
