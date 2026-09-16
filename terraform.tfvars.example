@@ -1,6 +1,7 @@
 # Скопировать в terraform.tfvars (не коммитится — *.tfvars в .gitignore) и заполнить.
 # folder_id — из консоли Yandex Cloud.
-# kafka_password — пароль сервисного пользователя Kafka/Schema Registry.
+# kafka_password — пароль сервисного пользователя Kafka (не админа кластера).
+# Используется и Go-приложением (SASL), и для Basic Auth в Schema Registry.
 
 folder_id      = "b1gxxxxxxxxxxxxxxxx"
 kafka_password = "replace-with-a-strong-password"
